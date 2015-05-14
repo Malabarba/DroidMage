@@ -27,25 +27,14 @@
              [:android-common
               {:target-path "target/release"
                :android
-               {;; Specify the path to your private keystore
-                ;; and the the alias of the key you want to
-                ;; sign APKs with.
-                ;; :keystore-path "/home/user/.android/private.keystore"
-                ;; :key-alias "mykeyalias"
+               {
                 :ignore-log-priority [:debug :verbose]
                 :aot :all
                 :build-type :release}}]}
 
-  :android {;; Specify the path to the Android SDK directory.
-            ;; :sdk-path "/opt/android-sdk/"
-
-            ;; Try increasing this value if dexer fails with
-            ;; OutOfMemoryException. Set the value according to your
-            ;; available RAM.
+  :android {
             :dex-opts ["-JXmx4096M"]
 
-            ;; If previous option didn't work, uncomment this as well.
-            ;; :force-dex-optimize true
             :manifest-options {:app-name "@string/app_name"}
             :target-version 21
             :aot-exclude-ns ["clojure.parallel" "clojure.core.reducers"
