@@ -1,4 +1,4 @@
-(ns com.endlessparentheses.droidmage.toast
+(ns com.droidmage.toast
   (:require [clojure.string :as s])
   (:use [neko.threading :only [on-ui]]
         [neko.notify    :only [toast]]

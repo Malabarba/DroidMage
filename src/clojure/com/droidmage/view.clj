@@ -1,4 +1,4 @@
-(ns com.endlessparentheses.droidmage.view
+(ns com.droidmage.view
   (:require [clojure.string :as s]
             [neko.listeners.dialog :as dl])
   (:use [neko.threading :only [on-ui]]

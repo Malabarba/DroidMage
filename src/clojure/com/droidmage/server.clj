@@ -1,9 +1,9 @@
-(ns com.endlessparentheses.droidmage.server
-  (:require [com.endlessparentheses.droidmage.view :as v]
-            [com.endlessparentheses.droidmage.chat :as chat]
-            [com.endlessparentheses.droidmage.server-list :as sl]
+(ns com.droidmage.server
+  (:require [com.droidmage.view :as v]
+            [com.droidmage.chat :as chat]
+            [com.droidmage.server-list :as sl]
             [clojure.string   :as s])
-  (:use [com.endlessparentheses.droidmage.toast]
+  (:use [com.droidmage.toast]
         [neko.data      :only [like-map]]
         [neko.activity  :only [defactivity]]
         [neko.debug     :only [*a keep-screen-on ui-e]]
@@ -57,7 +57,7 @@
 (defn connect [^Activity a user server]
   (let [intent (android.content.Intent.
                 a
-                (resolve 'com.endlessparentheses.droidmage.ServerActivity))]
+                (resolve 'com.droidmage.ServerActivity))]
     (into-bundle intent (assoc server :user user))
     (.startActivity a intent)))
 
@@ -77,7 +77,7 @@
                    :gravity :center}
    [:text-view {:text "Connection Failed. :("}]])
 
-(defactivity com.endlessparentheses.droidmage.ServerActivity
+(defactivity com.droidmage.ServerActivity
   :key :server
   :on-create
   (fn [this bundle]

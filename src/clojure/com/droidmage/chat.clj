@@ -1,6 +1,6 @@
-(ns com.endlessparentheses.droidmage.chat
+(ns com.droidmage.chat
   (:require [clojure.string :as s]
-            [com.endlessparentheses.droidmage.view :as v])
+            [com.droidmage.view :as v])
   (:use [neko.ui.adapters :only [ref-adapter]])
   ;; (:import mage.utils.MageVersion
   ;;          ;; mage.interfaces.MageServer

@@ -1,8 +1,8 @@
-(ns com.endlessparentheses.droidmage.server-list
+(ns com.droidmage.server-list
   (:require [clojure.string :as s]
-            [com.endlessparentheses.droidmage.view :as v])
+            [com.droidmage.view :as v])
   (:use [neko.threading :only [on-ui]]
-        [com.endlessparentheses.droidmage.toast])
+        [com.droidmage.toast])
   (:import (android.app Activity)))
 
 (def known-servers-url "http://176.31.186.181/files/server-list.txt")

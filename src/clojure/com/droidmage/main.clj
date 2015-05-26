@@ -1,11 +1,11 @@
-(ns com.endlessparentheses.droidmage.main
-  (:require [com.endlessparentheses.droidmage.server :as server]
-            [com.endlessparentheses.droidmage.view :as v]
-            [com.endlessparentheses.droidmage.server-list :as sl]
-            [com.endlessparentheses.droidmage.chat :as chat]
+(ns com.droidmage.main
+  (:require [com.droidmage.server :as server]
+            [com.droidmage.view :as v]
+            [com.droidmage.server-list :as sl]
+            [com.droidmage.chat :as chat]
             [clojure.string :as s])
   (:use [neko.activity  :only [defactivity]]
-        [com.endlessparentheses.droidmage.toast]
+        [com.droidmage.toast]
         [neko.threading :only [on-ui]]
         [neko.debug     :only [*a keep-screen-on ui-e]])
   (:import ;; mage.interfaces.MageClient
@@ -45,7 +45,7 @@
                                          (v/get-text act ::username)
                                          @sl/current-server))}]])
 
-(defactivity com.endlessparentheses.droidmage.MainActivity
+(defactivity com.droidmage.MainActivity
   :key :main
   :on-create
   (fn [this bundle]
