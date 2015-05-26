@@ -11,9 +11,16 @@
   :javac-options ["-target" "1.6" "-source" "1.6" "-Xlint:-options"]
   :plugins [[lein-droid "0.4.0-SNAPSHOT"]]
 
-  :dependencies [[org.clojure-android/clojure "1.7.0-beta3" :use-resources true]
+  :dependencies [[org.clojure-android/clojure "1.7.0-beta3-r2" :use-resources true]
+                 [org.mage/mage-common "1.4.0"]
+                 [org.mage/mage-network "1.4.0"]
                  [neko/neko "3.2.0"]]
   :profiles {:default [:dev]
+
+             :local-repl
+             [:dev
+              {:dependencies [[compat/android "21"]]
+               :target-path "target/local-repl"}]
 
              :dev
              [:android-common :android-user
@@ -26,14 +33,12 @@
              :release
              [:android-common
               {:target-path "target/release"
-               :android
-               {
-                :ignore-log-priority [:debug :verbose]
-                :aot :all
-                :build-type :release}}]}
+               :android {:ignore-log-priority [:debug :verbose]
+                         :aot :all
+                         :build-type :release}}]}
 
   :android {
-            :dex-opts ["-JXmx4096M"]
+            :dex-opts ["-JXmx4096M" "--multi-dex"]
 
             :manifest-options {:app-name "@string/app_name"}
             :target-version 21

@@ -1,0 +1,49 @@
+mage.interfaces.MageClient
+mage.utils.MageVersion
+mage.interfaces.MageServer
+
+(def connection (let [{:keys [address port]} @current-server
+                      conn (mage.remote.Connection.)]
+                  (.setHost conn address)
+                  (.setPort conn (read-string port))
+                  (.setUsername conn "TestingSomething")
+                  (.setForceDBComparison conn false)
+                  (.setAllowRequestShowHandCards conn false)
+                  (.setShowAbilityPickerForced conn false)
+                  conn))
+
+(let [session (mage.remote.SessionImpl. (make-client (*a)))]
+  (.connect session connection))
+
+(.getURI connection)
+(on-ui (org.jboss.remoting.transporter.TransporterClient/createTransporterClient
+        (.getLocatorURI (org.jboss.remoting.InvokerLocator. (.getURI connection)))
+        MageServer
+        (java.util.HashMap.
+         {org.jboss.remoting.transport.socket.SocketWrapper/WRITE_TIMEOUT "2000",
+          "generalizeSocketException" "true"})))
+
+(let [urlcon (.openConnection (java.net.URL. "http://google.com/index.html"))]
+  (.setDoOutput urlcon true)
+  (let [out (java.io.ObjectOutputStream. (.getOutputStream urlcon))]
+    (.writeObject out "successgul")
+    (.flush out)
+    (.close out)))
+
+(def client-error (atom nil))
+(def client-message (atom nil))
+(defn make-client [^Activity a]
+  (proxy [MageClient] []
+    (getVersion []
+      (MageVersion. 1 3 0 "" ""))
+    (disconnected [errorCall] (t a "ClientDisconnected: " errorCall))
+    (connected   [message] (t a "ClientConnected: " message))
+    (showMessage [message]
+      (reset! client-message message)
+      (t a "ClientMessage: " message))
+    (showError   [message]
+      (reset! client-error message)
+      (t a "ClientError: " message))
+    (processCallback [callback]
+      (t a "Got a callback to process!"))))
+;; boolean result = session.connect(connection);

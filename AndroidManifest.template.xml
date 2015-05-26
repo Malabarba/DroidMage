@@ -22,9 +22,9 @@
         <category android:name='android.intent.category.DEFAULT'/>
       </intent-filter>
     </activity>
-    <!-- <activity android:name=".ServerActivity" android:label="DroidMage"> -->
+    <activity android:name=".ServerActivity">
       <!-- android:parentActivityName=".MainActivity" -->
-    <!-- </activity> -->
+    </activity>
   </application>
 
   <uses-permission android:name="android.permission.INTERNET"/>
