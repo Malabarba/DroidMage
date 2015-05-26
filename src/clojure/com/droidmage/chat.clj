@@ -1,5 +1,6 @@
 (ns com.droidmage.chat
   (:require [clojure.string :as s]
+            [neko.listeners.text-view :as tl]
             [com.droidmage.view :as v])
   (:use [neko.ui.adapters :only [ref-adapter]])
   ;; (:import mage.utils.MageVersion
@@ -24,17 +25,18 @@
 
 (defn add-message [id message]
   "Convert `message` to a map and append to chat `id`."
-  (let [msg (msg-to-map message)]
+  (let [msg (if (map? message) message (msg-to-map message))]
     (swap! *chats* #(let [chat (conj (vec (% id)) msg)]
                       (assoc % id chat)))))
 
 (defn make-chat-adapter [a id]
+  (add-message id {:time "" :text "Connected"})
   (ref-adapter
    (fn [_]
      [:linear-layout {:id-holder true}
       [:text-view {:id ::chat-message
                    :text-size 24}]])
-   (fn [position parent _ [text user time]]
+   (fn [position parent _ {:keys [text user time]}]
      (v/set-text parent ::chat-message
                  (if user
                    (str time " " user ":" text)
@@ -48,10 +50,11 @@
                    :layout-width :match-parent
                    :gravity :bottom}
    [:list-view {:adapter (make-chat-adapter act id)}]
-   [:edit-text {:id ::chat-box
-                :layout-width :match-parent
-                :gravity :center
-                ;; :on-editor-action-listener
-                ;; (fn [view _action _event]
-                ;;   (add-message id (v/get-text view)))
-                }]])
+   (v/make-text-input (fn [view _action _event]
+                        (add-message id (v/get-text view)))
+                      {:id ::chat-box
+                       :layout-width :match-parent
+                       :gravity :center
+                       :ime-options android.view.inputmethod.EditorInfo/IME_ACTION_SEND
+                       :single-line false})])
+

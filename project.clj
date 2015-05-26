@@ -17,10 +17,10 @@
                  [neko/neko "3.2.0"]]
   :profiles {:default [:dev]
 
-             ;; :local-repl
-             ;; [:dev
-             ;;  {:dependencies [[compat/android "21"]]
-             ;;   :target-path "target/local-repl"}]
+             :local-repl
+             [:dev
+              {:dependencies [[compat/android "21"]]
+               :target-path "target/local-repl"}]
 
              :dev
              [:android-common :android-user

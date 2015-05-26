@@ -1,13 +1,29 @@
 (ns com.droidmage.view
   (:require [clojure.string :as s]
+            [neko.listeners.text-view :as tl]
             [neko.listeners.dialog :as dl])
   (:use [neko.threading :only [on-ui]]
-        [neko.ui        :only [config]]
+        [neko.ui        :only [config make-ui]]
         [neko.find-view :only [find-view]])
   (:import android.widget.TextView
            (android.app Activity)
            (android.app DialogFragment)
            (android.app AlertDialog AlertDialog$Builder)))
+
+(defn make-text-input [callback attr-map]
+  [:edit-text 
+   (into {:input-type  android.view.inputmethod.EditorInfo/TYPE_CLASS_TEXT
+          :ime-options android.view.inputmethod.EditorInfo/IME_ACTION_GO
+          :on-editor-action-listener (tl/on-editor-action-call callback)}
+         attr-map)])
+
+(defn set-editor-action!
+  ([^Activity a view callback]
+   (set-editor-action! (find-view a view) callback))
+  ([^TextView view callback]
+   (.setOnEditorActionListener
+    view (tl/on-editor-action-call callback))
+   view))
 
 (defn get-text
   ([^TextView view]
