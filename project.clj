@@ -11,10 +11,12 @@
   :javac-options ["-target" "1.6" "-source" "1.6" "-Xlint:-options"]
   :plugins [[lein-droid "0.4.0-SNAPSHOT"]]
 
-  :dependencies [[org.clojure-android/clojure "1.7.0-beta3-r2" :use-resources true]
-                 [org.mage/mage-common "1.4.0"]
+  :repositories [["sliding-menu" {:url "http://jzaccone.github.io/SlidingMenu-aar"}]]
+  :dependencies [[slidingmenu/library "1.3" :extension "aar"]
+                 [com.jeremyfeinstein.slidingmenu/library "1.3" :extension "aar"]
+                 [org.mage/mage-common "1.4.0"] 
                  [org.mage/mage-network "1.4.0"]
-                 [neko/neko "3.2.0"]]
+                 [org.mage/mage "1.4.0"]]
   :profiles {:default [:dev]
 
              :local-repl

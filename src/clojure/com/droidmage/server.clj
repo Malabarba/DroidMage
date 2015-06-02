@@ -1,21 +1,18 @@
 (ns com.droidmage.server
-  (:require [com.droidmage.view :as v]
+  (:require [clojure.string   :as s]
             [com.droidmage.chat :as chat]
             [com.droidmage.server-list :as sl]
-            [neko.log :as l]
-            [clojure.string   :as s])
+            [com.droidmage.view :as v]
+            [neko.log :as l])
   (:use [com.droidmage.toast]
         [neko.data      :only [like-map]]
-        [neko.activity  :only [defactivity]]
         [neko.debug     :only [*a keep-screen-on ui-e]]
         [neko.threading :only [on-ui]])
-  (:import mage.utils.MageVersion
+  (:import java.lang.Exception
+           mage.interfaces.ServerState
+           mage.utils.MageVersion
            org.mage.network.Client
-           (android.os Bundle)
-           (android.app Activity)
-           (android.app DatePickerDialog DatePickerDialog$OnDateSetListener)
-           (android.app AlertDialog AlertDialog$Builder)
-           (android.app DialogFragment)))
+           org.mage.network.interfaces.MageClient))
 
 (def mage-version (MageVersion. 1 4 0 "v0" ""))
 (def client-error (atom []))
@@ -23,47 +20,29 @@
 (def server-state (atom nil))
 (def server-client (atom nil))
 
-(defn make-client [^Activity a]
-  (proxy [org.mage.network.interfaces.MageClient] []
+(defn make-client [state-atom]
+  (proxy [MageClient] []
     (inform [msg type]
-      (to a "inform: " type " ::" msg))
+      (ld "inform: " type " ::" msg))
     (receiveChatMessage [chat-id msg]
       (chat/add-message chat-id msg)
-      (to a "receiveChatMessage: " chat-id ":: " msg))
+      (ld "receiveChatMessage: " chat-id ":: " msg))
     (receiveBroadcastMessage [msg]
       (swap! client-message conj msg)
-      (to a "receiveBroadcastMessage: " msg))
+      (ld "receiveBroadcastMessage: " msg))
     (clientRegistered [state]
-      (l/d "Register: " state)
-      (reset! server-state state)
-      (to a "clientRegistered: " state))
-    (getServerState [] @server-state)
+      (swap! state-atom assoc :server-state state)
+      (ld "clientRegistered: " state))
+    (getServerState [] (:server-state @state-atom))
     (connected [msg]
-      (to a "ClientConnected: " msg))))
+      (ld "ClientConnected: " msg))))
 
 ;; (def fut (future (.disconnect @server-client)))
 
-(defn add-to-bundle [b key v]
-  (let [k (if (keyword? key) (name key) (str key))]
-    (cond
-      (instance? android.content.Intent b) (.putExtra b k v)
-      (string? v) (.putCharSequence b k v)
-      (integer? v) (.putShort b k v)))
-  b)
-
-(defn into-bundle
-  ([m] (into-bundle (Bundle.) m))
-  ([bun m]
-   (reduce (fn [b [k v]] (add-to-bundle b (name k) v))
-           bun m)))
-
-(defn connect [^Activity a user server]
-  (let [intent (android.content.Intent.
-                a
-                (resolve 'com.droidmage.ServerActivity))]
-    (into-bundle intent (assoc server :user user))
-    (.startActivity a intent)))
-
+;; (defn connect [^Activity a user server]
+;;   (let [intent (android.content.Intent. a com.droidmage.ServerActivity)]
+;;     (into-bundle intent (assoc server :user user))
+;;     (.startActivity a intent)))
 
 ;; (swap! *game-list* conj "echo")
 ;; (require 'clojure.tools.nrepl.transport)
@@ -80,48 +59,58 @@
                    :gravity :center}
    [:text-view {:text "Connection Failed. :("}]])
 
-(defactivity com.droidmage.ServerActivity
-  :key :server
-  :on-create
-  (fn [this bundle]
-    (keep-screen-on this)
-    (v/set-layout! this main-layout)
-    (let [{:keys [user address port]}
-          (into @sl/current-server {:user "00ksdoaABUa"})
-          ;; (like-map (.getIntent this))
-          client (org.mage.network.Client. (make-client this))]
-      (reset! server-client client)
-      (swap! (.state this) assoc :client client)
-      ;; (remove-watch server-state :key-set-layout)
-      (add-watch server-state :key-set-layout
-                 (fn [_key _ref _old new-state]
-                   (l/d "Changed: " _ref _old new-state)
-                   (when new-state
-                     (try
-                       (let [main-id (.getMainRoomId new-state)]
-                         (l/d "main-id:" main-id)
-                         (let [chat-id (.getRoomChatId client main-id)]
-                           (l/d "chat-id:" chat-id)
-                           (swap! (.state this) assoc :state new-state)
-                           (swap! (.state this) assoc :main-room main-id)
-                           (l/d "joiningChat: ")
-                           (.joinChat client chat-id) ;void
-                           (l/d "Setting Layout: ")
-                           (v/set-layout! this chat/chat-layout chat-id)))
-                       (catch java.lang.Exception e
-                         (l/d "EXCEPTION!!! ")
-                         (l/e "EXCEPTION!!! " :exception e))))))
-      (future
-        (if-not (try (.connect client user address port mage-version)
-                     (catch java.net.ConnectException e
-                       (l/e "Failed Connection: " :exception e)
-                       (to this "Failed Connection: " (.toString e))
-                       false))
-          (v/set-layout! this failed-layout))))))
 
-;; (l/d "Some log string" {:foo 1, :bar 2})
-;; (l/i "Logging to custom tag" [1 2 3] :tag "custom")
-;; (l/e "Something went wrong" [1 2 3])
-;; (l/d "oaksdoksd")
-;; (on-ui (neko.log/e "Some log string" {:foo 1, :bar 2}))
-;; (android.util.Log/d "tag" "a message")
+(defn join-chat [^Client client room-id]
+  (try (java.lang.Thread/sleep 3000)
+       (ld "Woke up, getting chat-id." )
+       (when-let [chat-id (.getRoomChatId client room-id)]
+         (ld "chat-id:" chat-id)
+         (ld "joiningChat: ")
+         (.joinChat client chat-id)
+         chat-id)
+       (catch java.lang.Exception e
+         (le "EXCEPTION!!! " :exception e)
+         false)))
+
+(defn connect
+  "`callback` should take two arguments, where only one will be
+  non-nil. If connection was successful, the first argument is a
+  state-atom for the connection. If it failed, the second argument is
+  the exception."
+  [user {:keys [address port] :as server} callback]
+  ;; (into @sl/current-server {:user "ABUa"})
+  (try
+    (let [state-atom (atom {:server server})
+          client (Client. (make-client state-atom))]
+      (swap! state-atom assoc :client client)
+      (add-watch state-atom :client-registered-watch
+                 (fn [_key _ref _old
+                     {:keys [^ServerState server-state] :as new-state}]
+                   (ld "Changed: " _ref _old new-state)
+                   (when server-state
+                     (remove-watch state-atom :client-registered-watch)
+                     (let [room-id (.getMainRoomId server-state)]
+                       (ld "main-id:" room-id)
+                       (swap! state-atom assoc :main-room room-id)
+                       (future
+                         (when-let [chat-id (join-chat client room-id)]
+                           (swap! state-atom assoc :main-chat chat-id))
+                         (callback state-atom nil))))))
+      
+      (future
+        (try (when-not (.connect client user address port mage-version)
+               (callback nil "Failed without explanation."))
+             (catch Exception e
+               (le "Failed Connection: " :exception e)
+               (callback nil e)))))
+    (catch Exception e
+      (le "Failed Connection: " :exception e)
+      (callback nil e))))
+
+;; (defactivity com.droidmage.ServerActivity
+;;   :key :server
+;;   :on-create
+;;   (fn [^Activity this bundle]
+;;     (keep-screen-on this)
+
+;;     (connect)))

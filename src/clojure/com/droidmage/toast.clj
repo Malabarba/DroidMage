@@ -15,3 +15,20 @@
 
 (defmacro t [& info]
   `(to (*a) ~@info))
+
+(def tag "MyApp")
+
+(defmacro le [& args]
+  `(neko.log/e ~@args :tag ~tag))
+
+(defmacro ld [& args]
+  `(neko.log/d ~@args :tag ~tag))
+
+(defmacro li [& args]
+  `(neko.log/i ~@args :tag ~tag))
+
+(defmacro lv [& args]
+  `(neko.log/v ~@args :tag ~tag))
+
+(defmacro lw [& args]
+  `(neko.log/w ~@args :tag ~tag))
