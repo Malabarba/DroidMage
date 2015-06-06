@@ -1,154 +1,97 @@
 (ns com.droidmage.main
   (:require [clojure.string :as s]
             [com.droidmage.card :as card]
-            [com.droidmage.chat :as chat]
             [com.droidmage.data-manager :as dataman]
-            [com.droidmage.server :as server]
+            [com.droidmage.screens.home :as home]
             [com.droidmage.server-list :as sl]
+            [com.droidmage.sliding-menu :as sm]
             [com.droidmage.view :as v]
             [neko.action-bar :as abar]
             [neko.context :as context]
+            [neko.listeners.view :as vl]
             [neko.log :as l]
-            [neko.ui :as ui]
-            [wall.hack :as hack])
-  (:use [com.droidmage.toast]
-        [com.droidmage.shared-preferences :only [defpreference initialize-preferences]]
+            ;; [droidmage.wall.hack :as hack]
+            [neko.ui :as ui])
+  (:use [com.droidmage.shared-preferences :only [defpreference initialize-preferences]]
+        [com.droidmage.toast]
         [neko.activity  :only [defactivity simple-fragment]]
         [neko.debug     :only [*a keep-screen-on ui-e]]
         [neko.threading :only [on-ui]]
+        [neko.ui.adapters :only [ref-adapter]]
         [neko.ui.mapping  :only [defelement]])
-  (:import (android.app Activity ProgressDialog)
+  (:import (android.app Activity)
            ;; android.support.v4.widget.DrawerLayout
            (android.widget TextView FrameLayout)
+           (android.view MenuItem View)
            ;; com.jeremyfeinstein.slidingmenu.lib.CustomViewAbove
-           com.jeremyfeinstein.slidingmenu.lib.SlidingMenu
+           ;; com.droidmage.SlidingActivity
+           com.jeremyfeinstein.slidingmenu.lib.app.SlidingActivity
            java.sql.Driver
            java.sql.DriverManager))
 
-(def is-connecting (atom false))
-(defpreference last-username nil)
-(declare attempt-connection)
-(declare add-server-dialog)
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Layout
-(defn main-layout [^Activity act]
-  (let [input-view
-        (ui/make-ui
-         act (v/make-text-input (fn [view _action _event]
-                                  (attempt-connection act (v/get-text view)))
-                                {:hint "Username",  :id ::username,
-                                 :gravity :center, :layout-width :fill,
-                                 :text (or @last-username ""),
-                                 :enabled (not @is-connecting)
-                                 :single-line true}))]
-    [:linear-layout {:orientation :vertical
-                     :padding-top 30
-                     :padding-bottom 30
-                     :id-holder true
-                     :layout-width :match-parent
-                     :gravity :center-horizontal}
+;;; Sections
+(def ^:dynamic *sections*
+  "Each section is a map with the following keys:
+  name: Display name
+  layout: A function taking at least one arg, the activity.
+  layout-args: Additional arguments passed to the layout function."
+  (atom [{:name "Home" :layout #'home/screen-layout}]))
 
-     [:linear-layout {:orientation :horizontal
-                      :padding 10, :padding-top 20
-                      :id-holder true
-                      :layout-width :match-parent
-                      :gravity :center}
-      [:text-view {:layout-weight 25}]
-      [:linear-layout {:layout-weight 50} input-view]
-      [:text-view {:layout-weight 25}]]
+(defn add-section [name layout & [largs]]
+  (swap! *sections* conj {:name name :layout layout :layout-args largs}))
 
-     [:linear-layout {:padding 10,
-                      :orientation :horizontal}
-      [:text-view {:text "Server: "}]
-      [:button {:text (:name @sl/current-server),
-                :id ::server-button,
-                :enabled (not @is-connecting)
-                :on-click sl/show-server-picker}]]
+(defn hide-menu [^SlidingActivity a]
+  (.showContent a))
 
-     (v/make-button
-      "Connect" 30 (not @is-connecting)
-      (attempt-connection act (v/get-text input-view)))
+(defn make-sections-adapter [^Activity a]
+  (ref-adapter
+   (fn [context]
+     [:linear-layout {:id-holder true, :orientation :horizontal}
+      [:text-view {:text "B", :text-size 24}]
+      [:text-view {:id ::section-name, :text-size 24}]])
+   (fn [position ^View parent _ {:keys [name layout layout-args]}]
+     (v/set-text parent ::section-name name)
+     (.setOnClickListener
+      parent
+      (vl/on-click (v/set-layout! a (apply layout a layout-args))
+                   (hide-menu a))))
+   *sections*))
 
-     (v/make-button "Add Server" nil (not @is-connecting)
-                    add-server-dialog)
-
-     [:progress-bar {:visibility (if @is-connecting :visible :invisible)
-                     :padding 30}]]))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Connection
-(defn add-server-dialog [^android.view.View button]
-  "items is a list of strings.
-  callback is a function that will be called with the postion of the
-  selected item."
-  (let [a (.getContext button)]
-    (v/prompt-for-inputs a "Add Server"
-                         (fn [[n ad p]]
-                           (try (let [server {:name n :desc "" :address ad
-                                              :port (Integer/parseInt p)}]
-                                  (swap! sl/known-servers #(vec (distinct (conj % server))))
-                                  (reset! sl/current-server server)))
-                           (on-ui (v/set-layout! a main-layout)))
-                         [{:hint "Name"}
-                          {:hint "Address" :input-type :number}
-                          {:hint "Port" :input-type :number}])))
-
-(defn set-connected-layout
-  "Reset the layout of ServerActivity to the proper tabs."
-  [a chat-id]
-  (ld "Setting Layout: ")
-  (v/set-layout! a (constantly [:relative-layout {}]))
-  (on-ui (abar/setup-action-bar
-          a {:navigation-mode :tabs
-             :tabs [[:tab {:text "Tables"
-                           :tab-listener (simple-fragment
-                                          a [:text-view {:text "Not Implemented"}])}]
-                    [:tab {:text "Chat"
-                           :tab-listener (simple-fragment
-                                          a (chat/chat-layout a chat-id))}]]})))
-
-(defn post-connect [^Activity a state-atom exception]
-  (reset! is-connecting false)
-  (if state-atom
-    ;; Succeeded.
-    (let [{:keys [server chat-id]} @state-atom
-          {:keys [name address]} server]
-      (on-ui (abar/setup-action-bar
-              a {:title name, :subtitle address
-                 :display-options :show-title}))
-      (set-connected-layout a chat-id))
-    ;; Failed.
-    (do (v/set-layout! a main-layout)
-        (to a "Failed Connection: " (str exception)))))
-
-(defn attempt-connection [^Activity a user]
-  (reset! last-username user)
-  (.hideSoftInputFromWindow
-   ^android.view.inputmethod.InputMethodManager
-   (context/get-service a :input-method)
-   (.getWindowToken (.getDecorView (.getWindow a))) 0)
-  (reset! is-connecting true)
-  (v/set-layout! a main-layout)
-  (server/connect user @sl/current-server (partial post-connect a)))
+(defn menu-layout [^Activity a]
+  (neko.ui/make-ui a [:list-view {:adapter (make-sections-adapter a)}]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Activity
 (defactivity com.droidmage.MainActivity
   :key :main
-  :on-create
-  (fn [^Activity this bundle]
-    (keep-screen-on this)
-    (initialize-preferences this)
-    ;; (reset! last-username "ok")
-    (v/set-layout! this main-layout)
-    (future (dataman/extract-databases! this)
-            (dataman/populate-class-scanner-package-map! this)
-            (reset! dataman/databases-ready true))
-    (sl/update-server-list this)))
+  ;; :extends com.droidmage.SlidingActivity
+  :extends com.jeremyfeinstein.slidingmenu.lib.app.SlidingActivity)
+
+;; (.getSlidingMenu (*a))
+
+(defn MainActivity-onCreate [^SlidingActivity this bundle]
+  (swap! (.state this) assoc :add-section-fn #'add-section)
+  (keep-screen-on this)
+  (initialize-preferences this)
+  
+  (v/set-layout! this (:layout (first @*sections*)))
+  (.setBehindContentView this (menu-layout this))
+  (.setSlidingActionBarEnabled true)
+  
+  (future (dataman/extract-databases! this)
+          (dataman/populate-class-scanner-package-map! this)
+          (reset! dataman/databases-ready true))
+  (future (when (sl/update-server-list this)
+            (to this "Server list updated." :short))))
+
+;; (defn MainActivity-onCreateOptionsMenu
+;;   [^Activity this menu])
+
+;; (defn MainActivity-onOptionsItemSelected
+;;   [^Activity this ^MenuItem item])
 
 ;; (defn MainActivity-onDestroy [^Activity this]
 ;;   (let [{:keys [^org.mage.network.Client client]}

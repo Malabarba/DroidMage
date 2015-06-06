@@ -7,7 +7,7 @@
   :global-vars {*warn-on-reflection* true}
 
   :source-paths ["src/clojure" "src"]
-  :java-source-paths ["src/java"]
+  :java-source-paths ["src/java" "src/java/libs"]
   :javac-options ["-target" "1.6" "-source" "1.6" "-Xlint:-options"]
   :plugins [[lein-droid "0.4.0-SNAPSHOT"]]
 

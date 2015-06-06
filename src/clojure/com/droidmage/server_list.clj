@@ -41,15 +41,15 @@
         (rest (re-find #"^([^(]+[^ ]) +(\(.*[^ ]) *:([^ ]+):([^ ]+)$" line))]
     {:name name, :desc desc, :address ad, :port (Integer/parseInt port)}))
 
-(defn update-server-list [^Activity a]
-  (future
-    (let [newval (->> (slurp known-servers-url)
-                      (s/split-lines)
-                      (map server-line-to-map)
-                      (remove #(= (:name %) "localhost")))]
-      (when-not (= @known-servers
-                   (swap! known-servers #(vec (distinct (into % newval)))))
-        (to a "Server list updated." :short)))))
+(defn update-server-list
+  "Return true if something changed."
+  []
+  (let [newval (->> (slurp known-servers-url)
+                    (s/split-lines)
+                    (map server-line-to-map)
+                    (remove #(= (:name %) "localhost")))]
+    (not (= @known-servers
+            (swap! known-servers #(vec (distinct (into % newval))))))))
 
 ;; @Override
 ;; public boolean onCreateOptionsMenu(Menu menu)
