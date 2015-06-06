@@ -127,6 +127,11 @@
 (defmacro set-layout! [a layout & args]
   "Call set-content-view! on activity a with (layout a).
 Extra args are passed to layout along with a."
+  ;; (let [ui-layout (make-ui a (apply layout a args))]
+  ;;   (neko.threading/on-ui
+  ;;    (if-let [^View view (:screen-view @(.state a))]
+  ;;      (.setView view ui-layout)
+  ;;      (neko.activity/set-content-view! a ui-layout))))
   `(neko.threading/on-ui
     (neko.activity/set-content-view! ~a (~layout ~a ~@args))))
 

@@ -9,7 +9,7 @@
 ;; This library is extracted from 'old' clojure contrib. These fns appear to have been written by hiredman.
 ;; https://github.com/richhickey/clojure-contrib/commit/cc4e2ec2bf558f059330ebc97a031d7806a1e364
 
-(ns wall.hack)
+(ns com.droidmage.wall.hack)
 
 (defn method
   "Calls a private or protected method.
