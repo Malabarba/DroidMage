@@ -74,28 +74,28 @@
 
 (defn connect
   "`callback` should take two arguments, where only one will be
-  non-nil. If connection was successful, the first argument is a
-  state-atom for the connection. If it failed, the second argument is
-  the exception."
+  non-nil. If connection was successful, the first argument is a map
+  for the connection. If it failed, the second argument is the
+  exception."
   [user {:keys [address port] :as server} callback]
   ;; (into @sl/current-server {:user "ABUa"})
   (try
-    (let [state-atom (atom {:server server})
-          client (Client. (make-client state-atom))]
-      (swap! state-atom assoc :client client)
-      (add-watch state-atom :client-registered-watch
+    (let [connection-atom (atom {:server server})
+          client (Client. (make-client connection-atom))]
+      (swap! connection-atom assoc :client client)
+      (add-watch connection-atom :client-registered-watch
                  (fn [_key _ref _old
                      {:keys [^ServerState server-state] :as new-state}]
                    (ld "Changed: " _ref _old new-state)
                    (when server-state
-                     (remove-watch state-atom :client-registered-watch)
+                     (remove-watch connection-atom :client-registered-watch)
                      (let [room-id (.getMainRoomId server-state)]
                        (ld "main-id:" room-id)
-                       (swap! state-atom assoc :main-room room-id)
+                       (swap! connection-atom assoc :main-room room-id)
                        (future
                          (when-let [chat-id (join-chat client room-id)]
-                           (swap! state-atom assoc :main-chat chat-id))
-                         (callback state-atom nil))))))
+                           (swap! connection-atom assoc :main-chat chat-id))
+                         (callback connection-atom nil))))))
       
       (future
         (try (when-not (.connect client user address port mage-version)

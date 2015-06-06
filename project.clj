@@ -14,15 +14,16 @@
   :repositories [["sliding-menu" {:url "http://jzaccone.github.io/SlidingMenu-aar"}]]
   :dependencies [[slidingmenu/library "1.3" :extension "aar"]
                  [com.jeremyfeinstein.slidingmenu/library "1.3" :extension "aar"]
+                 [neko/neko "3.2.0"]
                  [org.mage/mage-common "1.4.0"] 
                  [org.mage/mage-network "1.4.0"]
                  [org.mage/mage "1.4.0"]]
   :profiles {:default [:dev]
 
-             :local-repl
-             [:dev
-              {:dependencies [[compat/android "21"]]
-               :target-path "target/local-repl"}]
+             ;; :local-repl
+             ;; [:dev
+             ;;  {:dependencies [[compat/android "21"]]
+             ;;   :target-path "target/local-repl"}]
 
              :dev
              [:android-common :android-user
