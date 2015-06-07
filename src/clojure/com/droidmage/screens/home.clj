@@ -2,7 +2,6 @@
   (:require [com.droidmage.server :as server]
             [com.droidmage.server-list :as sl]
             [com.droidmage.view :as v]
-            [neko.action-bar :as abar]
             [neko.ui :as ui]
             [com.droidmage.chat :as chat])
   (:use [com.droidmage.shared-preferences :only [defpreference initialize-preferences]]
@@ -87,7 +86,7 @@
   "Reset the layout of ServerActivity to the proper tabs."
   [a {:keys [name address]} chat-id]
   (ld "Connected Layout: " name address chat-id)
-  (on-ui (abar/setup-action-bar
+  (on-ui (v/set-action-bar!
           a {:title name, :subtitle address
              :display-options :show-title
              :navigation-mode :tabs

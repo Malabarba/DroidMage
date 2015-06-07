@@ -125,7 +125,7 @@
                 (.create))))))))
 
 
-(defmacro set-layout! [a layout & args]
+(defn set-layout! [a layout & args]
   "Call set-content-view! on activity a with (layout a).
 Extra args are passed to layout along with a."
   ;; (let [ui-layout (make-ui a (apply layout a args))]
@@ -133,8 +133,17 @@ Extra args are passed to layout along with a."
   ;;    (if-let [^View view (:screen-view @(.state a))]
   ;;      (.setView view ui-layout)
   ;;      (neko.activity/set-content-view! a ui-layout))))
-  `(neko.threading/on-ui
-    (neko.activity/set-content-view! ~a (~layout ~a ~@args))))
+  (neko.threading/on-ui
+   (neko.activity/set-content-view! a (apply layout a args))))
+
+(defn set-action-bar!
+  "Configures activity's action bar according to the attributes
+  provided in key-value fashion. For more information,
+  see `(describe :action-bar)`."
+  [^Activity activity, attributes-map]
+  (let [action-bar (.getActionBar activity)]
+    (.removeAllTabs action-bar)
+    (neko.ui/apply-attributes :action-bar action-bar attributes-map {})))
 
 (defmacro make-button [text pad enabled & [head & tail :as body]]
   `[:linear-layout ~(into {:orientation :horizontal}

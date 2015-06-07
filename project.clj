@@ -7,17 +7,23 @@
   :global-vars {*warn-on-reflection* true}
 
   :source-paths ["src/clojure" "src"]
-  :java-source-paths ["src/java" "src/java/libs"]
-  :javac-options ["-target" "1.6" "-source" "1.6" "-Xlint:-options"]
+  :java-source-paths ["src/java"
+                      "src/java/libs"
+                      ]
+  :javac-options ["-target" "1.6" "-source" "1.6" ;; "-Xlint:-options"
+                  ]
   :plugins [[lein-droid "0.4.0-SNAPSHOT"]]
 
   :repositories [["sliding-menu" {:url "http://jzaccone.github.io/SlidingMenu-aar"}]]
-  :dependencies [[slidingmenu/library "1.3" :extension "aar"]
+  :dependencies [
+                 ;; [slidingmenu/library "1.3" :extension "aar"]
                  [com.jeremyfeinstein.slidingmenu/library "1.3" :extension "aar"]
-                 [neko/neko "3.2.0"]
-                 [org.mage/mage-common "1.4.0"] 
+                 ;; [neko/neko "3.2.0"]
+                 [neko/neko "4.0.0-SNAPSHOT"]
+                 ;; [org.mage/mage-common "1.4.0"] 
                  [org.mage/mage-network "1.4.0"]
-                 [org.mage/mage "1.4.0"]]
+                 [org.mage/mage "1.4.0"]
+                 ]
   :profiles {:default [:dev]
 
              ;; :local-repl
@@ -41,7 +47,7 @@
                          :build-type :release}}]}
 
   :android {
-            :dex-opts ["-JXmx4096M" "--multi-dex"]
+            :dex-opts ["-JXmx4096M" "--multi-dex"] ;; 
 
             :manifest-options {:app-name "@string/app_name"}
             :target-version 21

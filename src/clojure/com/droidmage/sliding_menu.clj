@@ -36,16 +36,15 @@
 ;; (def menu (SlidingMenu. (*a)))
 ;; (on-ui (attach-sliding-menu (*a)))
 
-(defactivity com.droidmage.SlidingActivity
-  :key :main
-  :extends com.jeremyfeinstein.slidingmenu.lib.app.SlidingActivity
-  :on-create
-  (fn [^Activity this bundle]
-    (keep-screen-on this)
-    ())
+;; (defactivity com.droidmage.SlidingActivity
+;;   :key :main
+;;   :extends com.jeremyfeinstein.slidingmenu.lib.app.SlidingActivity
+;;   :on-create
+;;   (fn [^Activity this bundle]
+;;     (keep-screen-on this))
 
-  :on-create-options-menu
-  (fn [^Activity this menu])
+;;   :on-create-options-menu
+;;   (fn [^Activity this menu])
 
-  :on-options-item-selected
-  (fn [^Activity this ^MenuItem item]))
+;;   :on-options-item-selected
+;;   (fn [^Activity this ^MenuItem item]))
