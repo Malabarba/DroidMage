@@ -10,20 +10,22 @@
   :java-source-paths ["src/java"
                       "src/java/libs"
                       ]
-  :javac-options ["-target" "1.6" "-source" "1.6" ;; "-Xlint:-options"
-                  ]
+  :javac-options ["-target" "1.6" "-source" "1.6" "-Xlint:-options"]
+
   :plugins [[lein-droid "0.4.0-SNAPSHOT"]]
 
   :repositories [["sliding-menu" {:url "http://jzaccone.github.io/SlidingMenu-aar"}]]
-  :dependencies [
-                 ;; [slidingmenu/library "1.3" :extension "aar"]
-                 [com.jeremyfeinstein.slidingmenu/library "1.3" :extension "aar"]
-                 ;; [neko/neko "3.2.0"]
+  ;; The SlidingMenu dependency is used to import *its* dependencies. Since lein
+  ;; doesn't support aar files, we have to include SlidingMenu into our source code.
+  :dependencies [[com.jeremyfeinstein.slidingmenu/library "1.3" :extension "aar"]
                  [neko/neko "4.0.0-SNAPSHOT"]
-                 ;; [org.mage/mage-common "1.4.0"] 
+                 ;; [org.mage/mage-common "1.4.0"]
                  [org.mage/mage-network "1.4.0"]
-                 [org.mage/mage "1.4.0"]
-                 ]
+                 [org.mage/mage "1.4.0"]]
+  ;; We hack our own log4j inside org.mage/mage, so we have to exclude it from jdbc
+  ;; to avoid dexing conflicts.
+  :exclusions [log4j]
+
   :profiles {:default [:dev]
 
              ;; :local-repl

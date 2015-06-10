@@ -75,8 +75,8 @@
   :key :main
   ;; :extends com.droidmage.SlidingActivity
   :extends com.jeremyfeinstein.slidingmenu.lib.app.SlidingActivity
-  :on-create
-  (fn [^SlidingActivity this bundle]
+  (onCreate
+    [this bundle]
     (.superOnCreate this bundle)
     (swap! (.state this) assoc :add-section-fn #'add-section)
     (keep-screen-on this)
@@ -84,7 +84,7 @@
 
     ;; (v/set-layout! (*a) menu-layout )
     (v/set-layout! this (:layout (first @*sections*)))
-    
+
     (.setBehindContentView this (menu-layout this))
     (.setSlidingActionBarEnabled this false)
     (on-ui

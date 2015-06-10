@@ -5,7 +5,7 @@
 (defactivity com.droidmage.GameActivity
   :key :game
   :features [:no-title]
-  
-  :on-create
-  (fn [^Activity this bundle]))
+
+  (onCreate [this bundle]
+    (.superOnCreate this bundle)))
 

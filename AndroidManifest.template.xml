@@ -6,9 +6,9 @@
 
   <uses-sdk android:minSdkVersion="15" />
 
-  <application
-      android:icon="@drawable/ic_launcher"
-      android:label="DroidMage">
+  <application android:name="neko.App"
+               android:icon="@drawable/ic_launcher"
+               android:label="{{app-name}}">
     <activity android:name=".SplashActivity"
               android:theme="@android:style/Theme.Translucent.NoTitleBar">
       <intent-filter>

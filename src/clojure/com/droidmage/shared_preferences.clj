@@ -1,8 +1,53 @@
 (ns com.droidmage.shared-preferences
   (:require [neko.data :as data])
   (:use [com.droidmage.toast])
-  (:import (android.content SharedPreferences Context)))
+  (:import (android.content SharedPreferences SharedPreferences$Editor Context)
+           neko.App))
 
+(defprotocol GenericExtrasKey
+  "If given a string returns itself, otherwise transforms a argument
+  into a string."
+  (generic-key [key]))
+
+(extend-protocol GenericExtrasKey
+  String
+  (generic-key [s] s)
+
+  clojure.lang.Keyword
+  (generic-key [k] (.getName k)))
+
+(def ^:private sp-access-modes {:private Context/MODE_PRIVATE
+                                :world-readable Context/MODE_WORLD_READABLE
+                                :world-writeable Context/MODE_WORLD_WRITEABLE})
+
+(defn get-shared-preferences
+  "Returns the SharedPreferences object for the given name. Possible modes:
+  `:private`, `:world-readable`, `:world-writeable`."
+  ([name mode]
+   (get-shared-preferences App/instance name mode))
+  ([^Context context, name mode]
+   {:pre [(or (number? mode) (contains? sp-access-modes mode))]}
+   (let [mode (if (number? mode)
+                mode (sp-access-modes mode))]
+     (.getSharedPreferences context name mode))))
+
+(defn ^SharedPreferences$Editor assoc-arbitrary!
+  "Puts `value` of an arbitrary Clojure data type into given
+  SharedPreferences editor instance. Data is printed into a string and
+  stored as a string value."
+  [^SharedPreferences$Editor sp-editor key value]
+  (let [key (generic-key key)]
+    (.putString sp-editor key (pr-str value))))
+
+(defn get-arbitrary
+  "Gets a string by given key from a SharedPreferences
+  HashMap (wrapped with `like-map`) and transforms it into a data
+  value using Clojure reader."
+  [sp-map key]
+  (when-let [val (get sp-map key)]
+    (read-string val)))
+
+
 (def sp "SharedPreferences manager for the application." (atom nil))
 (def preferences "Set of atoms to keep track of." (atom #{}))
 
@@ -10,14 +55,12 @@
   "Watch function for saving preferences whenever they are edited."
   [^SharedPreferences sp _key ref old new]
   (when-not (= old new)
-    (ld "Preference " ref " updated from " old " to " new)
     (when-not sp
       (throw (java.lang.Exception
               (str "shared-preferences not initialized: " sp))))
     (locking sp
-      (ld "Saving it in " sp)
       (-> (.edit sp)
-          (data/assoc-arbitrary! (:sp-key (meta ref)) new)
+          (assoc-arbitrary! (:sp-key (meta ref)) new)
           .commit))))
 
 (defn track-and-set!
@@ -27,46 +70,62 @@
   shared-prefs defaults to `sp`.
   The atom must have an `:sp-key` meta property holding a string or a
   keyword."
-  ([a] (track-and-set! a @sp))
+  ([a]
+   (if @sp
+     (track-and-set! a @sp)
+     (throw (java.lang.Exception "shared-preferences not initialized"))))
   ([a ^SharedPreferences sp]
+   {:pre [(instance? clojure.lang.Atom a)
+          (:sp-key (meta a))]}
    (let [key (:sp-key (meta a))]
-     (when-not key
-       (throw (java.lang.IllegalArgumentException.
-               (str "This atom is not a preference: " a))))
-     (when-not sp
-       (throw (java.lang.Exception
-               "shared-preferences not initialized")))
      (locking sp
-       (try (let [msp (neko.data/like-map sp)]
+       (try (let [msp (data/like-map sp)]
               (when (contains? msp key)
-                (reset! a (neko.data/get-arbitrary msp key))))
+                (reset! a (get-arbitrary msp key))))
             (catch java.lang.Exception e
-              (to a "Preference" key "couldn't be read, disregarding."))))
+              (le "Preference" key "couldn't be read, disregarding"))))
      (add-watch a :shared-preferences-save-tracker
                 (partial watch sp)))))
 
-(defn initialize-preferences [^Context c]
-  (ld "Initializing get-shared-preferences...")
-  (reset! sp (data/get-shared-preferences c "droidmage_global" :private))
-  (ld "Adding " (count @preferences) " preferences")
-  (doseq [p @preferences]
-    (track-and-set! p)))
+(defn initialize-preferences
+  "Restore the recorded value of all preferences, and configure them
+  to be saved when changed. Call this only once per application
+  lifetime.
+
+  This function can be invoked with either a SharedPreferences object,
+  or a name and a Context (as per `get-shared-preferences`). In the
+  latter case, this function will have no effect if preferences have
+  already been initialized in this session, unless a third truthy
+  argument is provided."
+  ([^Context context name]
+   (initialize-preferences context name false))
+  ([^Context context name force]
+   (when (or force (not @sp))
+     (initialize-preferences
+      (get-shared-preferences context name :private))))
+  ([^SharedPreferences shared-prefs]
+   (reset! sp shared-prefs)
+   (doseq [p @preferences]
+     (track-and-set! p shared-prefs))))
 
 (defmacro defpreference
-  "Define a shared preference, i.e., an atom whose value is saved
-  between sessions. Defines a var with `name`, whose value is an atom
-  containing `value`, optionally including a `doc`string. Then, if
-  this variable is present in `sp`, set the atom's value to the value
-  saved in `sp`.
+  "Define a preference, i.e., an atom whose value is saved between
+  sessions. Defines a var with `name`, whose value is an atom
+  containing `value`, optionally including a docstring. The actual
+  saving and restoring only takes place once the function
+  initialize-preferences is called, which should happen only once per
+  application lifetime, so call it in the onCreate of your main
+  activity.
 
-  By default, whenever the value of this atom changes, the
-  corresponding value saved in `sp` is also updated.
+  Once the function is called, any previously saved value will
+  override `value`, and a watcher will be used to always save the
+  value again when the atom is changed.
+
   Additional keyword arguments accepted are:
-
   :version -- Change this number to ignore previously saved values.
-  :key     -- The key to use in `sp`, defaults to \"sp/namespace/name/version\".
+  :key -- The key to use in `sp`, defaults to \"sp/namespace/name/version\".
+  Setting this invalidates the version argument.
   :meta and :validator -- Passed to the atom."
-  ;; :shared-prefs -- A SharedPreferences to use instead of `sp`.
   ([name value]
    `(defpreference ~name nil ~value))
   ([name doc value & rest]

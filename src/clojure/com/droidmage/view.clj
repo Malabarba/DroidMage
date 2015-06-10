@@ -1,6 +1,6 @@
 (ns com.droidmage.view
   (:require [clojure.string :as s]
-            [neko.context :as context]
+            ;; [neko.context :as context]
             [neko.listeners.dialog :as dl]
             [neko.listeners.text-view :as tl])
   (:use [neko.activity  :only [set-content-view!]]
@@ -157,7 +157,8 @@ Extra args are passed to layout along with a."
                  `(fn [~'button] ~@body))}]])
 
 (defn hide-keyboard [^Activity a]
-  (let [^android.view.inputmethod.InputMethodManager
-        imm (context/get-service a :input-method)]
-    (.hideSoftInputFromWindow
-     imm (.getWindowToken (.getDecorView (.getWindow a))) 0)))
+  ;; (let [^android.view.inputmethod.InputMethodManager
+  ;;       imm (context/get-service a :input-method)]
+  ;;   (.hideSoftInputFromWindow
+  ;;    imm (.getWindowToken (.getDecorView (.getWindow a))) 0))
+  )
