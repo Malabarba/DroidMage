@@ -1,26 +1,21 @@
 (ns com.droidmage.card
   (:require [clojure.string :as s]
+            [lazy-map.iop :as iop]
             [neko.log :as l])
-  (:use com.droidmage.iop
-        com.droidmage.toast)
+  (:use com.droidmage.toast)
   (:import android.app.Activity
            mage.cards.CardImpl
-           mage.cards.decks.importer.DckDeckImporter
            mage.cards.decks.importer.DeckImporter
            mage.cards.repository.CardInfo
            mage.cards.decks.DeckCardInfo))
 
-(defobjectmap cardinfo-as-map
-  mage.cards.repository.CardInfo
-  :exclude [getCard getMockCard])
+(iop/extend-lazy-map
+ mage.cards.repository.CardInfo
+ :exclude [getCard getMockCard])
 
-(defobjectmap cardimpl-as-map
-  mage.cards.CardImpl
-  :exclude [getRules])
-
-(defn deckcardinfo-to-cardinfo [^mage.cards.decks.DeckCardInfo card]
-  (.findCard mage.cards.repository.CardRepository/instance
-             (.getSetCode card) (.getCardNum card)))
+(iop/extend-lazy-map
+ mage.cards.CardImpl
+ :exclude [getRules])
 
 (def rarity-to-color
   {:mythic   android.graphics.Color/RED
@@ -60,43 +55,16 @@
           [[:text-view {:gravity :right, :layout-width :match-parent,
                         :text (str power "/" toughness)}]])))
 
-(defn import-deck [^Activity a file]
-  (let [^DckDeckImporter importer
-        (proxy [DckDeckImporter] []
-          (importDeck [filename]
-            (with-open [in (.open (.getAssets a) filename)]
-              (let [decklist (mage.cards.decks.DeckCardLists.)
-                    ^DeckImporter imp this]
-                (doseq [line (s/split-lines (slurp in))]
-                  (.readLine imp ^String (s/trim line) decklist))
-                (when-let [e (.getErrors imp)]
-                  (when-not (= e "")
-                    (to a e) (le e) (println e)))
-                decklist))))]
-    (.importDeck importer file)))
-
-;; (bean
-;;  (mage.cards.repository.CardInfo.
-;;   (CardImpl/createCard "mage.sets.worldwake.StoneforgeMystic")))
-;; (cardinfo-as-map)
-
 ;; (def mystic
 ;;   (mage.cards.repository.CardInfo.
 ;;    (CardImpl/createCard "mage.sets.worldwake.StoneforgeMystic")))
 
-;; (cardinfo-as-map mystic)
-
-;; "mage.sets.zendikar.AdventuringGear"
-
-;; (mage.sets.zendikar.AdventuringGear. (java.util.UUID/randomUUID))
+;; (iop/to-lazy-map mystic)
 
 ;; (:object
 ;;  (first
 ;;   (map #(card-as-map (deckcardinfo-to-cardinfo %))
 ;;        (.getCards a-deck))))
 
-;; (def a-deck
-;;   (let [file "/home/artur/Git-Projects/mage/Mage.Client/release/sample-decks/2011/Zen_M11_SoM/Boros.dck"]
-;;     (DeckImporterUtil/importDeck file)))
 ;; (card-layout cost)
 ;; (:class-name cost)

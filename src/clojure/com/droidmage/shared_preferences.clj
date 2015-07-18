@@ -25,7 +25,7 @@
   `:private`, `:world-readable`, `:world-writeable`."
   ([name mode]
    (get-shared-preferences App/instance name mode))
-  ([^Context context, name mode]
+  ([^Context context, name, mode]
    {:pre [(or (number? mode) (contains? sp-access-modes mode))]}
    (let [mode (if (number? mode)
                 mode (sp-access-modes mode))]
@@ -80,7 +80,7 @@
    (let [key (:sp-key (meta a))]
      (locking sp
        (try (let [msp (data/like-map sp)]
-              (when (contains? msp key)
+              (when (.containsKey msp key)
                 (reset! a (get-arbitrary msp key))))
             (catch java.lang.Exception e
               (le "Preference" key "couldn't be read, disregarding"))))

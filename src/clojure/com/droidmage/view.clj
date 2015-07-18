@@ -12,6 +12,7 @@
            (android.app AlertDialog AlertDialog$Builder)
            (android.app DialogFragment)
            ;; android.support.v4.widget.DrawerLayout
+           android.view.WindowManager$LayoutParams
            android.view.ViewGroup
            android.view.inputmethod.EditorInfo
            (android.widget TextView FrameLayout)))
@@ -134,7 +135,10 @@ Extra args are passed to layout along with a."
   ;;      (.setView view ui-layout)
   ;;      (neko.activity/set-content-view! a ui-layout))))
   (neko.threading/on-ui
-   (neko.activity/set-content-view! a (apply layout a args))))
+   (neko.activity/set-content-view!
+    a (if (fn? layout)
+        (apply layout a args)
+        layout))))
 
 (defn set-action-bar!
   "Configures activity's action bar according to the attributes
@@ -162,3 +166,10 @@ Extra args are passed to layout along with a."
   ;;   (.hideSoftInputFromWindow
   ;;    imm (.getWindowToken (.getDecorView (.getWindow a))) 0))
   )
+
+(defn keep-screen-on! [activity bool]
+  (neko.threading/on-ui
+   (let [win (.getWindow activity)]
+     (if (or bool (not (:neko.init/release-build *compiler-options*)))
+       (.addFlags win WindowManager$LayoutParams/FLAG_KEEP_SCREEN_ON)
+       (.clearFlags win WindowManager$LayoutParams/FLAG_KEEP_SCREEN_ON)))))

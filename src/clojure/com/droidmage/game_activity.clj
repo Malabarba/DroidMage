@@ -1,4 +1,4 @@
-(ns clojure.com.droidmage.game-activity
+(ns com.droidmage.game-activity
   (:use [neko.activity :only [defactivity simple-fragment]])
   (:import (android.app Activity)))
 

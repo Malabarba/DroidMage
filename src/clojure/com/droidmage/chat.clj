@@ -1,22 +1,22 @@
 (ns com.droidmage.chat
   (:require [clojure.string :as s]
             [com.droidmage.view :as v]
+            [lazy-map.iop :as iop]
             [neko.listeners.text-view :as tl])
-  (:use com.droidmage.iop
-        com.droidmage.toast
+  (:use com.droidmage.toast
         [neko.ui.adapters :only [ref-adapter]])
   (:import android.app.Activity
            org.mage.network.Client))
 
-(defobjectmap msg-as-map 
-  mage.view.ChatMessage
-  :keyname {getMessage :text})
+(iop/extend-lazy-map 
+ mage.view.ChatMessage
+ :keyname {getMessage :text})
 
 (def ^:dynamic *chats* (atom {}))
 
 (defn add-message [id message]
   "Convert `message` to a map and append to chat `id`."
-  (let [msg (msg-as-map message)]
+  (let [msg (iop/to-lazy-map message)]
     (swap! *chats* #(let [chat (conj (vec (% id)) msg)]
                       (assoc % id chat)))))
 

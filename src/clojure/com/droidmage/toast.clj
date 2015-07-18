@@ -11,10 +11,12 @@
   (on-ui
    (if (and (seq info) (#{:long :short} (last info)))
      (toast a (clojure.string/join " " (butlast info)) (last info))
-     (toast a (clojure.string/join " " info) :long))))
+     (toast a (clojure.string/join " " info) :long)))
+  nil)
 
 (defmacro t [& info]
-  `(to (*a) ~@info))
+  (if-not (:neko.init/release-build *compiler-options*)
+    `(to (*a) ~@info)))
 
 (def tag "MyApp")
 

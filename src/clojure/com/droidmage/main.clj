@@ -39,7 +39,7 @@
   name: Display name
   layout: A function taking at least one arg, the activity.
   layout-args: Additional arguments passed to the layout function."
-  (atom [{:name "Home" :layout #'home/screen-layout}]))
+  (atom [{:name "Home" :layout #'com.droidmage.screens.home/screen-layout}]))
 
 (defn add-section [name layout & [largs]]
   (swap! *sections* conj {:name name :layout layout :layout-args largs}))
@@ -47,12 +47,13 @@
 (defn hide-menu [^SlidingActivity a]
   (.showContent a))
 
+(declare menu-layout)
 (defn make-sections-adapter [^Activity a]
   (ref-adapter
    (fn [context]
-     [:linear-layout {:id-holder true, :orientation :horizontal}
-      [:image-view {:padding 10, :image-resource android.R$drawable/sym_def_app_icon}]
-      [:text-view {:padding 10, :text-color android.graphics.Color/WHITE,
+     [:linear-layout {:id-holder true, :orientation :horizontal, :padding 16}
+      [:image-view {:padding-right 10, :image-resource android.R$drawable/sym_def_app_icon}]
+      [:text-view {:text-color android.graphics.Color/WHITE, ;; :padding 10,
                    :gravity :center-vertical,
                    ;; :text-appearance android.R$style/TextAppearance
                    :id ::section-name, :text-size 20}]])
@@ -60,17 +61,38 @@
      (v/set-text parent ::section-name name)
      (.setOnClickListener
       parent
-      (vl/on-click (apply v/set-layout! a layout layout-args)
+      (vl/on-click (apply v/set-layout! a @layout layout-args)
+                   (.setBehindContentView ^SlidingActivity a (menu-layout a))
                    (hide-menu a))))
    *sections*))
 
 (defn menu-layout [^Activity a]
   (neko.ui/make-ui a [:linear-layout {:orientation :vertical}
+                      [:text-view {:layout-height 120, :text "Placeholder Space"}]
                       [:list-view {:adapter (make-sections-adapter a)}]]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Activity
+(defn- setup-layout [^SlidingActivity a]
+  ;; (v/set-layout! (*a) menu-layout )
+  (v/set-layout! a @(:layout (first @*sections*)))
+
+  (.setBehindContentView a (menu-layout a))
+  (.setSlidingActionBarEnabled a false)
+  (on-ui
+   (let [menu (.getSlidingMenu a)]
+     (swap! (.state a) assoc :menu menu)
+     (.setMode menu SlidingMenu/LEFT)
+     (.setTouchModeAbove menu SlidingMenu/TOUCHMODE_FULLSCREEN)
+     ;; (.setShadowWidth menu 400)
+     (.setBehindWidth menu 400)
+     (.setFadeDegree menu 0.5)))
+  ;; (.setShadowDrawable menu R.drawable.shadow)
+  ;; (.setBehindOffsetRes menu R.dimen.slidingmenu_offset)
+  ;; (.setMenu menu R.layout.menu)
+  )
+
 (defactivity com.droidmage.MainActivity
   :key :main
   ;; :extends com.droidmage.SlidingActivity
@@ -80,31 +102,25 @@
     (.superOnCreate this bundle)
     (swap! (.state this) assoc :add-section-fn #'add-section)
     (keep-screen-on this)
-    (initialize-preferences this)
+    (initialize-preferences this "simple-preferences")
 
-    ;; (v/set-layout! (*a) menu-layout )
-    (v/set-layout! this (:layout (first @*sections*)))
+    (setup-layout this)
 
-    (.setBehindContentView this (menu-layout this))
-    (.setSlidingActionBarEnabled this false)
-    (on-ui
-     (let [menu (.getSlidingMenu this)]
-       (swap! (.state this) assoc :menu menu)
-       (.setMode menu SlidingMenu/LEFT)
-       (.setTouchModeAbove menu SlidingMenu/TOUCHMODE_FULLSCREEN)
-       ;; (.setShadowWidth menu 400)
-       (.setBehindWidth menu 400)
-       (.setFadeDegree menu 0.5)))
-    ;; (.setShadowDrawable menu R.drawable.shadow)
-    ;; (.setBehindOffsetRes menu R.dimen.slidingmenu_offset)
-    ;; (.setMenu menu R.layout.menu)
-    
-    (future (dataman/extract-databases! this)
+    (future (to this "Extracting sample decks" :short)
+            (doseq [deckfile (.list (.getAssets this) "decks")]
+              (dataman/extract-file! this deckfile false))
+            (add-section "Decks" #'com.droidmage.screens.decks/screen-layout)
+            (to this "Extracting databases" :short)
+            (dataman/extract-databases! this)
+            (to this "Populating the cards list" :short)
             (dataman/populate-class-scanner-package-map! this)
-            (reset! dataman/databases-ready true))
-    (future (when (sl/update-server-list this)
+            (reset! dataman/databases-ready true)
+            (to this "All done" :short)
+            (when (sl/update-server-list this)
               (to this "Server list updated." :short)))))
 
+;; (on-ui (v/set-layout! (*a) @(:layout (first @*sections*))))
+;; (on-ui (.setBehindContentView ^SlidingActivity (*a) (menu-layout (*a))))
 ;; (.getSlidingMenu (*a))
 
 ;; (defn MainActivity-onCreate [^SlidingActivity this bundle])

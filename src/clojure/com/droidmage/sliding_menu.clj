@@ -1,9 +1,9 @@
 (ns com.droidmage.sliding-menu
   (:require [clojure.string :as s]
             [com.droidmage.view :as v]
+            [lazy-map.iop :as iop]
             [neko.listeners.text-view :as tl])
-  (:use com.droidmage.iop
-        com.droidmage.toast
+  (:use com.droidmage.toast
         [neko.activity  :only [defactivity simple-fragment]]
         [neko.debug     :only [*a keep-screen-on ui-e]]
         [neko.ui.adapters :only [ref-adapter]])

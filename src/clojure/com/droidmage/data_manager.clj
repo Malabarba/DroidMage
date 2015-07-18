@@ -15,13 +15,16 @@
 (defn extract-file!
   "Extract a file from the assets directory to the external data
   directory. Parent directories are created as needed."
-  [^Activity a filename]
-  (let [file (File. (str (.getFilesDir a) "/" filename))
-        parent-path (.getParent file)
-        parent (when parent-path (File. parent-path))]
-    (when parent
-      (.mkdirs parent))
-    (spit file (slurp (.open (.getAssets a) filename)))))
+  ([^Activity a filename] (extract-file! a filename true))
+  ([^Activity a filename overwrite]
+   (let [out-file (File. (str (.getFilesDir a) "/" filename))
+         parent-path (.getParent out-file)
+         parent (when parent-path (File. parent-path))]
+     (when (or (not (.exists out-file))
+               overwrite)
+       (when parent
+         (.mkdirs parent))
+       (spit out-file (slurp (.open (.getAssets a) filename)))))))
 
 (def db-version 1)
 
@@ -39,7 +42,9 @@
            (catch Exception e
              (le "EXCEPTION!!! " :exception e)
              (to a e)))
-      (li "Database files already up-to-date, version:" version))))
+      (li "Database files already up-to-date, version:" version))
+    (.initialize mage.cards.repository.CardRepository/instance false)
+    (.initialize mage.cards.repository.ExpansionRepository/instance false)))
 
 (defn populate-class-scanner-package-map! [^Activity a]
   (try
