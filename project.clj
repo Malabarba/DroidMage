@@ -1,8 +1,7 @@
 (defproject DroidMage/DroidMage "0.0.1-SNAPSHOT"
   :description "Xmage android client"
   :url "http://example.com/FIXME"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :license {:name "MIT"}
 
   :global-vars {*warn-on-reflection* true}
 
